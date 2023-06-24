@@ -1,10 +1,10 @@
 package contacts;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 class Director {
     public static void AddContact(List<Contacts> listOfRecords, String phoneNumberRegex, Scanner scanner) {
         System.out.println("Enter the type (person, organization):");
@@ -63,77 +63,74 @@ class Director {
             }
         }
     }
-    public static void PrintContact(Scanner scanner, List<Contacts> listOfRecords) {
+    public static String ContactNames(List<Contacts> listOfRecords) {
+        int i = 1;
+        String text = "";
+        for (Contacts contact : listOfRecords
+        ) {
+            if (contact instanceof Person) {
+                text += String.format("%d. %s %s%n", i++, contact.getName(), ((Person) contact).getSurname());
+            } else {
+                text += String.format("%d. %s%n", i++, contact.getName());
+            }
+        }
+        return text;
+    }
+
+    public static void PrintContact(Scanner scanner, List<Contacts> listOfRecords, String regexToMatch) {
         PrintContactNames(listOfRecords);
-        System.out.println("Enter index to show info:");
-        int indexToShow = Integer.parseInt(scanner.nextLine());
-        Contacts contacts = listOfRecords.get(indexToShow - 1);
-        if (contacts instanceof Organization) {
-            System.out.println("Organization name: " + contacts.getName());
-            System.out.println("Address: " + ((Organization) contacts).getAddress());
-            System.out.println("Number: " + contacts.getPhoneNumber());
-            System.out.println("Time created: " + contacts.getCreatedDate());
-            System.out.println("Time last edit: " + contacts.getLastEdit());
+        //while (scanner.hasNextLine()) {
+        System.out.println();
+        System.out.println("[list] Enter action ([number], back):");
+        String whichAction = scanner.nextLine();
+        if (whichAction.equals("back")) {
+            //break;
         } else {
-            System.out.println("Name: " + contacts.getName());
-            System.out.println("Surname: " + ((Person) contacts).getSurname());
-            System.out.println("Birth date: " + ((Person) contacts).getBirthDate() );
-            System.out.println("Gender: " + ((Person) contacts).getGender());
-            System.out.println("Number: " + contacts.getPhoneNumber());
-            System.out.println("Time created: " + contacts.getCreatedDate());
-            System.out.println("Time last edit: " + contacts.getLastEdit());
+            int indexToShow = Integer.parseInt(whichAction);
+            Contacts contacts = listOfRecords.get(indexToShow - 1);
+            Shower(contacts, scanner, regexToMatch, listOfRecords);
+        }
+        //}
+
+    }
+    public static String Shower(Contacts contacts, Scanner scanner, String regexTomatch, List<Contacts> contactsList) {
+        if (contacts != null) {
+            if (contacts instanceof Organization) {
+                System.out.println("Organization name: " + contacts.getName());
+                System.out.println("Address: " + ((Organization) contacts).getAddress());
+                System.out.println("Number: " + contacts.getPhoneNumber());
+                System.out.println("Time created: " + contacts.getCreatedDate());
+                System.out.println("Time last edit: " + contacts.getLastEdit());
+            } else {
+                System.out.println("Name: " + contacts.getName());
+                System.out.println("Surname: " + ((Person) contacts).getSurname());
+                System.out.println("Birth date: " + ((Person) contacts).getBirthDate() );
+                System.out.println("Gender: " + ((Person) contacts).getGender());
+                System.out.println("Number: " + contacts.getPhoneNumber());
+                System.out.println("Time created: " + contacts.getCreatedDate());
+                System.out.println("Time last edit: " + contacts.getLastEdit());
+            }
+        }
+
+        while (true) {
+            System.out.println();
+            System.out.println("[record] Enter action (edit, delete, menu):");
+            String action = scanner.nextLine();
+            switch (action) {
+                case "edit" -> EditorNew(scanner, contacts, regexTomatch);
+                case "delete" -> RemoverNew(contacts, contactsList);
+                default -> {
+                    return "back";
+                }
+            }
         }
     }
-    public static void Editor(Scanner scanner, List<Contacts> listOfRecords, String phoneNumberRegex) {
-        if (listOfRecords.size() == 0) {
-            System.out.println("No records to edit!");
-        } else {
-            PrintContactNames(listOfRecords);
-            System.out.println("Select a record:");
-            int whichContact = Integer.parseInt(scanner.nextLine());
-            Contacts contact = listOfRecords.get(whichContact - 1);
-            if (contact instanceof Person) {
-                System.out.println("Select a field (name, surname, birth, gender, number):");
-                String field = scanner.nextLine();
-                switch (field) {
-                    case "number" -> {
-                        System.out.println("Enter number:");
-                        String number = scanner.nextLine();
-                        if (number.matches(phoneNumberRegex)) {
-                            contact.setPhoneNumber(number);
-                        } else {
-                            System.out.println("Wrong number format!");
-                            contact.setPhoneNumber("[no number]");
-                        }
-                    }
-                    case "name" -> {
-                        System.out.println("Enter name:");
-                        contact.setName(scanner.nextLine());
-                    }
-                    case "gender" -> {
-                        System.out.println("Enter gender");
-                        String gender = scanner.nextLine();
-                        if (gender.isBlank()) {
-                            gender = "[no data]";
-                            System.out.println("Bad gender");
-                        }
-                        ((Person) contact).setGender(gender);
-                    }
-                    case "birth" -> {
-                        System.out.println("Enter birthday:");
-                        String birthday = scanner.nextLine();
-                        if (birthday.isBlank()) {
-                            birthday = "[no data]";
-                            System.out.println("Bad birth date!");
-                        }
-                        ((Person) contact).setBirthDate(birthday);
-                    }
-                    default -> ((Person) contact).setSurname(scanner.nextLine());
-                }
-            } else {
-                System.out.println("Select a field (address, number):");
-                String field = scanner.nextLine();
-                if (field.equals("number")) {
+    public static void EditorNew(Scanner scanner, Contacts contact, String phoneNumberRegex) {
+        if (contact instanceof Person) {
+            System.out.println("Select a field (name, surname, birth, gender, number):");
+            String field = scanner.nextLine();
+            switch (field) {
+                case "number" -> {
                     System.out.println("Enter number:");
                     String number = scanner.nextLine();
                     if (number.matches(phoneNumberRegex)) {
@@ -142,23 +139,109 @@ class Director {
                         System.out.println("Wrong number format!");
                         contact.setPhoneNumber("[no number]");
                     }
-                } else {
-                    ((Organization) contact).setAddress(scanner.nextLine());
                 }
+                case "name" -> {
+                    System.out.println("Enter name:");
+                    contact.setName(scanner.nextLine());
+                }
+                case "gender" -> {
+                    System.out.println("Enter gender");
+                    String gender = scanner.nextLine();
+                    if (gender.isBlank()) {
+                        gender = "[no data]";
+                        System.out.println("Bad gender");
+                    }
+                    ((Person) contact).setGender(gender);
+                }
+                case "birth" -> {
+                    System.out.println("Enter birthday:");
+                    String birthday = scanner.nextLine();
+                    if (birthday.isBlank()) {
+                        birthday = "[no data]";
+                        System.out.println("Bad birth date!");
+                    }
+                    ((Person) contact).setBirthDate(birthday);
+                }
+                default -> ((Person) contact).setSurname(scanner.nextLine());
             }
-            contact.setLastEdit(LocalDateTime.now());
+        } else {
+            System.out.println("Select a field (address, number):");
+            String field = scanner.nextLine();
+            if (field.equals("number")) {
+                System.out.println("Enter number:");
+                String number = scanner.nextLine();
+                if (number.matches(phoneNumberRegex)) {
+                    contact.setPhoneNumber(number);
+                } else {
+                    System.out.println("Wrong number format!");
+                    contact.setPhoneNumber("[no number]");
+                }
+            } else {
+                ((Organization) contact).setAddress(scanner.nextLine());
+            }
         }
+        contact.setLastEdit(LocalDateTime.now());
+        System.out.println("Saved");
     }
-    public static void Remover(Scanner scanner, List<Contacts> listOfRecords) {
+
+    public static void RemoverNew(Contacts contact, List<Contacts> listOfRecords) {
         if (listOfRecords.size() == 0) {
             System.out.println("No records to remove!");
         } else {
-            PrintContactNames(listOfRecords);
-            System.out.println("Select a record:");
-            int whichContact = Integer.parseInt(scanner.nextLine());
-            Contacts contact = listOfRecords.get(whichContact - 1);
             listOfRecords.remove(contact);
             System.out.println("The record removed!");
+        }
+    }
+    public static String ContactNamesForSearch(List<Contacts> listOfRecords) {
+        int i = 1;
+        String text = "";
+        for (Contacts contact : listOfRecords
+        ) {
+            if (contact instanceof Person) {
+                text += String.format("%s %s%n%s%n", contact.getName(), ((Person) contact).getSurname(), contact.getPhoneNumber());
+            } else {
+                text += String.format("%s%n%s%n", contact.getName(), contact.getPhoneNumber());
+            }
+        }
+        return text;
+    }
+    public static void Searcher(Scanner scanner, List<Contacts> contactsList, String regexTomatch) {
+        System.out.println("Enter search query:");
+        String regex = scanner.nextLine();
+        Pattern pattern = Pattern.compile(".*" + regex + ".*", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(ContactNamesForSearch(contactsList));
+        String element = "";
+        int i = 1;
+        Map<Integer, String> mapOfNames = new HashMap<>();
+        while (matcher.find()) {
+            String name = matcher.group();
+            element += i + "." + name + "\n";
+            mapOfNames.put(i, name);
+            i++;
+        }
+        System.out.println(element);
+        while (true) {
+            System.out.println("[search] Enter action ([number], back, again):");
+            String whatToDo = scanner.nextLine();
+            Contacts contacts = null;
+            if (whatToDo.equals("again")) {
+                Searcher(scanner, contactsList, regexTomatch);
+            } else if (whatToDo.equals("back")) {
+                break;
+            } else {
+                for (Contacts contact : contactsList
+                ) {
+                    if (mapOfNames.containsKey(Integer.parseInt(whatToDo)) && contact != null) {
+                        if (mapOfNames.get(Integer.parseInt(whatToDo)).contains(contact.getName())) {
+                            contacts = contact;
+                        }
+                    }
+                }
+                whatToDo = Shower(contacts, scanner, regexTomatch, contactsList);
+                if (whatToDo.equals("back")) {
+                    break;
+                }
+            }
         }
     }
     public static void main(String[] args) {
@@ -166,15 +249,15 @@ class Director {
         List<Contacts> listOfRecords = new ArrayList<>();
         String phoneNumberRegex = "^\\+*[0-9a-zA-Z()]+((\\s+|-+)[0-9a-zA-Z]{2,})*$|^\\+*[0-9a-zA)]+((\\s+|-+)\\(*[0-9a-zA-Z]{2,}\\)*)*$";
         String enterAnAction;
+        String filePath = "C:\\Users\\alahmm\\Downloads\\txt.txt";
         while (true) {
-            System.out.print("Enter action (add, remove, edit, count, info, exit):");
+            System.out.print("[menu] Enter action (add, list, search, count, exit):");
             enterAnAction = scanner.nextLine();
             switch (enterAnAction) {
                 case "count" -> System.out.printf("The Phone Book has %d records.%n", listOfRecords.size());
-                case "edit" -> Editor(scanner, listOfRecords, phoneNumberRegex);
-                case "remove" -> Remover(scanner, listOfRecords);
                 case "add" -> AddContact(listOfRecords, phoneNumberRegex, scanner);
-                case "info" -> PrintContact(scanner, listOfRecords);
+                case "list" -> PrintContact(scanner, listOfRecords, phoneNumberRegex);
+                case "search" -> Searcher(scanner, listOfRecords, phoneNumberRegex);
                 default -> {
                     return;
                 }
